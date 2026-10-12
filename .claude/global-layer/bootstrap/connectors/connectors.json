@@ -1,0 +1,59 @@
+[
+  {
+    "name": "Neon",
+    "pick_in_claude_ai": "Neon",
+    "prefix": "mcp__claude_ai_Neon__",
+    "_comment": "Write tools start with create_, update_, delete_, reset_, provision_, deploy_, restore_, rotate_, revoke_, register_, set_, or are flagged by the verifier's evidence list. Existing credential access remains ask-scoped.",
+    "ask": [
+      "delete_project", "delete_branch", "delete_postgres_database",
+      "delete_postgres_endpoint", "delete_postgres_role", "delete_snapshot",
+      "delete_storage_bucket", "delete_storage_object", "delete_storage_objects_by_prefix",
+      "delete_trigger", "delete_function", "delete_functions_custom_domain",
+      "delete_data_api", "delete_auth_user", "delete_auth_oauth_provider",
+      "delete_auth_trusted_domain", "disable_auth", "reset_from_parent",
+      "restore_snapshot", "finalize_branch_restore", "revoke_credential",
+      "rotate_credential", "reset_postgres_role_password", "run_sql",
+      "run_sql_transaction", "complete_database_migration", "get_connection_string",
+      "create_credential", "create_project", "create_postgres_role",
+      "deploy_function", "update_project", "set_default_branch",
+      "add_auth_oauth_provider", "add_auth_trusted_domain", "complete_query_tuning",
+      "create_auth_user", "create_branch", "create_postgres_database",
+      "create_postgres_endpoint", "create_snapshot", "create_storage_bucket",
+      "create_trigger", "prepare_database_migration", "prepare_query_tuning",
+      "presign_storage_object", "provision_neon_auth", "provision_neon_data_api",
+      "recover_project", "register_functions_custom_domain", "restart_postgres_endpoint",
+      "send_feedback", "set_snapshot_schedule", "start_postgres_endpoint",
+      "suspend_postgres_endpoint", "update_auth_config", "update_auth_oauth_provider",
+      "update_auth_user_role", "update_branch", "update_data_api", "update_function",
+      "update_postgres_database", "update_postgres_endpoint", "update_snapshot", "update_trigger"
+    ],
+    "deny": []
+  },
+  {
+    "name": "Render",
+    "pick_in_claude_ai": "Render",
+    "prefix": "mcp__claude_ai_Render__",
+    "ask": [
+      "create_cron_job", "create_key_value", "create_postgres", "create_static_site",
+      "create_web_service", "update_environment_variables", "trigger_deploy"
+    ],
+    "deny": []
+  },
+  {
+    "name": "Hostinger",
+    "pick_in_claude_ai": "Hostinger Connector plugin",
+    "prefix": "mcp__claude_ai_Hostinger__",
+    "ask": [],
+    "deny": ["*purchase*", "*billing*", "*domain*buy*", "*buy*domain*",
+      "*buy*", "*invoice*", "*pay*", "*checkout*", "*order*", "*register*",
+      "*renew*", "*upgrade*", "*subscribe*"],
+    "unverified": true
+  },
+  {
+    "name": "AWS",
+    "pick_in_claude_ai": "AWS MCP us-east-1",
+    "prefix": "mcp__claude_ai_AWS_MCP__",
+    "ask": ["aws___run_script", "aws___get_presigned_url"],
+    "deny": []
+  }
+]

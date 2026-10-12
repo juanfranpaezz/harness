@@ -1,0 +1,109 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" evidence-gate.mjs",
+            "timeout": 12
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" ref-lint-gate.mjs",
+            "timeout": 17
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" memory-coherence.mjs",
+            "timeout": 17
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" _discipline-meter-observe.mjs",
+            "timeout": 17
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" reversibility-guard.mjs",
+            "timeout": 12
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Bash|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" injection-tripwire-observe.mjs",
+            "timeout": 12
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" _date-context.mjs",
+            "timeout": 7
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" _subagent-lifecycle-probe.mjs",
+            "timeout": 7
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" _subagent-lifecycle-probe.mjs",
+            "timeout": 7
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" _subagent-lifecycle-probe.mjs",
+            "timeout": 7
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/_global-runner.mjs\" --data \"${CLAUDE_PLUGIN_DATA}\" _config-change-audit.mjs",
+            "timeout": 7
+          }
+        ]
+      }
+    ]
+  }
+}

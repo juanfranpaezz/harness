@@ -1,0 +1,8 @@
+# harness-deny-roots.txt - per-machine roots the global harness runner must never operate on.
+# Read by hooks/_global-runner.mjs (repo source .claude/global-layer/_global-runner.mjs, denyRoots()):
+# one path per line, '#' starts a comment, blank lines ignored, each line trimmed, lowercased and
+# backslashes turned into '/', trailing '/' stripped. A project dir equal to a root or under it is denied.
+# Example (uncomment and edit): a repository the harness must treat as read-only.
+# <drive>:/path/to/read-only-repo
+# Example (uncomment and edit): employer code the personal-profile seeder/runner must never touch.
+# c:/work

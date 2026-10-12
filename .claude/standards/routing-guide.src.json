@@ -1,0 +1,400 @@
+{
+  "entries": {
+    ".claude/agents/analyzer.md": {
+      "use_when": "Choose among viable options",
+      "not_when": "Facts unsettled",
+      "substitute": "investigator",
+      "cost": "S/M tokens; minutes",
+      "risk": "Rankings need evidence"
+    },
+    ".claude/agents/closer.md": {
+      "use_when": "Prepare a human handoff",
+      "not_when": "Research incomplete",
+      "substitute": "planner",
+      "cost": "S tokens; minutes",
+      "risk": "No sending authority"
+    },
+    ".claude/agents/coder.md": {
+      "use_when": "Build an approved change",
+      "not_when": "Need independent review",
+      "substitute": "verifier",
+      "cost": "S/M tokens; minutes",
+      "risk": "Edits need an oracle"
+    },
+    ".claude/agents/contract-checker.md": {
+      "use_when": "Check a precise contract",
+      "not_when": "Spec is ambiguous",
+      "substitute": "verifier",
+      "cost": "S tokens; minutes",
+      "risk": "Abstains on ambiguity"
+    },
+    ".claude/agents/innovator.md": {
+      "use_when": "Widen a thin option set",
+      "not_when": "Need a final choice",
+      "substitute": "analyzer",
+      "cost": "S tokens; minutes",
+      "risk": "Ideas are hypotheses"
+    },
+    ".claude/agents/investigator.md": {
+      "use_when": "Establish external facts",
+      "not_when": "One local lookup",
+      "substitute": "Inline search",
+      "cost": "M tokens; minutes",
+      "risk": "Sources can be stale"
+    },
+    ".claude/agents/memory-guard.md": {
+      "use_when": "Audit stored claim truth",
+      "not_when": "Only shape drift",
+      "substitute": "memory_linter",
+      "cost": "S tokens; minutes",
+      "risk": "Requires primary evidence"
+    },
+    ".claude/agents/planner.md": {
+      "use_when": "Freeze a chosen build plan",
+      "not_when": "Direction unresolved",
+      "substitute": "analyzer",
+      "cost": "S tokens; minutes",
+      "risk": "Bad premises survive"
+    },
+    ".claude/agents/reversibility-reviewer.md": {
+      "use_when": "Review one risky action",
+      "not_when": "Bulk code review",
+      "substitute": "verifier",
+      "cost": "S tokens; minutes",
+      "risk": "Review does not enforce"
+    },
+    ".claude/agents/scribe.md": {
+      "use_when": "Capture durable preferences",
+      "not_when": "No new signals",
+      "substitute": "Inline note",
+      "cost": "S tokens; minutes",
+      "risk": "Do not infer preferences"
+    },
+    ".claude/agents/secretary.md": {
+      "use_when": "Digest a large source set",
+      "not_when": "Need a verdict",
+      "substitute": "verifier",
+      "cost": "S tokens; minutes",
+      "risk": "Digest can omit evidence"
+    },
+    ".claude/agents/selfcert-guard.md": {
+      "use_when": "Check self-certifying code",
+      "not_when": "Spec is ambiguous",
+      "substitute": "contract-checker",
+      "cost": "S tokens; minutes",
+      "risk": "Observe only"
+    },
+    ".claude/agents/verifier.md": {
+      "use_when": "Independently test a claim",
+      "not_when": "Only a pinned check needed",
+      "substitute": "Mechanical oracle",
+      "cost": "M tokens; minutes",
+      "risk": "Needs fresh evidence"
+    },
+    ".claude/global-layer/_date-context.mjs": {
+      "use_when": "Provide prompt date context",
+      "not_when": "Establish external recency",
+      "substitute": "investigator",
+      "cost": "T0; seconds",
+      "risk": "Host clock dependent"
+    },
+    ".claude/global-layer/_global-runner.mjs": {
+      "use_when": "Route installed hook calls",
+      "not_when": "Run arbitrary commands",
+      "substitute": "Configured hook",
+      "cost": "T0; seconds",
+      "risk": "Install policy dependent"
+    },
+    ".claude/hooks/_ceo-comm-check-observe.mjs": {
+      "use_when": "Observe communication patterns",
+      "not_when": "Decide correctness",
+      "substitute": "Human review",
+      "cost": "T0; seconds",
+      "risk": "Heuristic false flags"
+    },
+    ".claude/hooks/_config-change-audit.mjs": {
+      "use_when": "Record configuration edits",
+      "not_when": "Authorize edits",
+      "substitute": "Config review",
+      "cost": "T0; seconds",
+      "risk": "Audit is not prevention"
+    },
+    ".claude/hooks/_discipline-meter-observe.mjs": {
+      "use_when": "Observe workflow discipline",
+      "not_when": "Block a task",
+      "substitute": "Session review",
+      "cost": "T0; seconds",
+      "risk": "Heuristic; advisory"
+    },
+    ".claude/hooks/_fake-persist-gate.mjs": {
+      "use_when": "Check claimed persistence",
+      "not_when": "Prove artifact quality",
+      "substitute": "Read artifact",
+      "cost": "T0; seconds",
+      "risk": "Claim detection is partial"
+    },
+    ".claude/hooks/_log-redact.mjs": {
+      "use_when": "Redact hook log fields",
+      "not_when": "Prove all data safe",
+      "substitute": "Export leak check",
+      "cost": "T0; seconds",
+      "risk": "Pattern coverage limited"
+    },
+    ".claude/hooks/_py-resolve.mjs": {
+      "use_when": "Resolve hook Python",
+      "not_when": "Choose a model",
+      "substitute": "Explicit Python",
+      "cost": "T0; seconds",
+      "risk": "Interpreter may be missing"
+    },
+    ".claude/hooks/_ramp-alarm.mjs": {
+      "use_when": "Observe repeated failures",
+      "not_when": "Settle a verdict",
+      "substitute": "Failure review",
+      "cost": "T0; seconds",
+      "risk": "Thresholds need context"
+    },
+    ".claude/hooks/_reminder-state.mjs": {
+      "use_when": "Track reminder state",
+      "not_when": "Store durable facts",
+      "substitute": "scribe",
+      "cost": "T0; seconds",
+      "risk": "Transient state only"
+    },
+    ".claude/hooks/_subagent-lifecycle-probe.mjs": {
+      "use_when": "Record agent lifecycle",
+      "not_when": "Judge agent results",
+      "substitute": "verifier",
+      "cost": "T0; seconds",
+      "risk": "Missing events limit counts"
+    },
+    ".claude/hooks/_turn-touch.mjs": {
+      "use_when": "Track per-turn activity",
+      "not_when": "Judge progress",
+      "substitute": "Artifact review",
+      "cost": "T0; seconds",
+      "risk": "Helper state may be absent"
+    },
+    ".claude/hooks/askuserquestion-deny.mjs": {
+      "use_when": "Apply question-tool policy",
+      "not_when": "Decide task scope",
+      "substitute": "Direct clarification",
+      "cost": "T0; seconds",
+      "risk": "Policy may need adaptation"
+    },
+    ".claude/hooks/correction-detector-gate.mjs": {
+      "use_when": "Capture correction signals",
+      "not_when": "Infer preferences silently",
+      "substitute": "scribe",
+      "cost": "T0; seconds",
+      "risk": "False positives possible"
+    },
+    ".claude/hooks/correction-detector.mjs": {
+      "use_when": "Parse correction signals",
+      "not_when": "Dispatch directly",
+      "substitute": "Correction hook",
+      "cost": "T0; seconds",
+      "risk": "Helper; lexical coverage"
+    },
+    ".claude/hooks/evidence-gate.mjs": {
+      "use_when": "Observe done-claim evidence on Stop",
+      "not_when": "Treat flags as verdicts",
+      "substitute": "verifier",
+      "cost": "T0; seconds",
+      "risk": "Retired locally; false flags"
+    },
+    ".claude/hooks/honest-risk-preconditions.mjs": {
+      "use_when": "Evaluate risky-action premises",
+      "not_when": "Grant execution authority",
+      "substitute": "Risk review",
+      "cost": "T0; seconds",
+      "risk": "Helper; narrow coverage"
+    },
+    ".claude/hooks/injection-tripwire-observe.mjs": {
+      "use_when": "Observe suspicious tool text",
+      "not_when": "Treat content as authority",
+      "substitute": "Source review",
+      "cost": "T0; seconds",
+      "risk": "Heuristics miss attacks"
+    },
+    ".claude/hooks/memory-coherence.mjs": {
+      "use_when": "Automatic memory shape lint",
+      "not_when": "Validate factual claims",
+      "substitute": "memory-guard",
+      "cost": "T0; seconds",
+      "risk": "Shape-only coverage"
+    },
+    ".claude/hooks/ref-lint-gate.mjs": {
+      "use_when": "Automatic link lint",
+      "not_when": "Judge source truth",
+      "substitute": "ref_linter",
+      "cost": "T0; seconds",
+      "risk": "Observe output needs triage"
+    },
+    ".claude/hooks/reversibility-guard.mjs": {
+      "use_when": "Review risky shell actions",
+      "not_when": "Bypass approval",
+      "substitute": "reversibility-reviewer",
+      "cost": "T0; seconds",
+      "risk": "Limited command coverage"
+    },
+    ".claude/tools/_py.mjs": {
+      "use_when": "Launch hook Python",
+      "not_when": "Node-only work",
+      "substitute": "Explicit Python",
+      "cost": "T0; seconds",
+      "risk": "Interpreter availability"
+    },
+    ".claude/tools/gate_coherence.py": {
+      "use_when": "Check gate logic consistency",
+      "not_when": "Need semantic review",
+      "substitute": "verifier",
+      "cost": "T0; seconds",
+      "risk": "Limited encoded rules"
+    },
+    ".claude/tools/instrument_fitness.py": {
+      "use_when": "Test outcome variation",
+      "not_when": "Only one outcome recorded",
+      "substitute": "Both-ways fixtures",
+      "cost": "T0; seconds",
+      "risk": "Variation is not precision"
+    },
+    ".claude/tools/memory_linter.py": {
+      "use_when": "Check memory structure",
+      "not_when": "Judge claim truth",
+      "substitute": "memory-guard",
+      "cost": "T0; seconds",
+      "risk": "Shape is not truth"
+    },
+    ".claude/tools/ref_linter.py": {
+      "use_when": "Check document links",
+      "not_when": "Judge factual truth",
+      "substitute": "memory-guard",
+      "cost": "T0; seconds",
+      "risk": "Links can resolve but mislead"
+    },
+    ".claude/tools/secret_scan.py": {
+      "use_when": "Scan staged changes locally",
+      "not_when": "Browse credentials",
+      "substitute": "Manual diff review",
+      "cost": "T0; seconds",
+      "risk": "Patterns have blind spots"
+    },
+    ".claude/tools/selfcert_harness.py": {
+      "use_when": "Run self-certification probes",
+      "not_when": "Ambiguous postcondition",
+      "substitute": "verifier",
+      "cost": "T0; seconds",
+      "risk": "Probe scope is limited"
+    },
+    ".claude/tools/test_adequacy.py": {
+      "use_when": "Assess test oracle strength",
+      "not_when": "No testable contract",
+      "substitute": "contract-checker",
+      "cost": "T0; seconds",
+      "risk": "Adequacy is not correctness"
+    }
+  },
+  "exclusion_scope": "Project-local outbound-message pre-send hooks are outside the portable inventory.",
+  "excluded": {
+    ".claude/agents/arm-reviewer.md": "DORMANT; experimental or retired role.",
+    ".claude/agents/client-voice.md": "DORMANT; experimental or retired role.",
+    ".claude/agents/dispatch-planner.md": "Source-tree build/planning tool; not yet in the plugin payload.",
+    ".claude/agents/grader.md": "DORMANT; experimental or retired role.",
+    ".claude/agents/order-analyst.md": "DORMANT; experimental or retired role.",
+    ".claude/agents/v1-coverage-checker.md": "DORMANT; coverage folded into verifier.",
+    ".claude/global-layer/bootstrap.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/detector-parity.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/harness-install.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/harness-seed.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/pii-guard-rule10-fixtures.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/plugin-checks.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/remove-direct-project-hook-entries.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/statusline_meters.mjs": "Machine-local utility; not in the portable plugin.",
+    ".claude/global-layer/sync-harness-from-source.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/global-layer/work_profile_sync.py": "Machine-local utility; not in the portable plugin.",
+    ".claude/hooks/_ceo-format-gate.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/hooks/_deletion-canary-observe.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/hooks/_dispatch-lint-posthoc-observe.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/hooks/_fork-vote-gate.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/hooks/_windows-notice.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/hooks/ceo-model-coherence.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/hooks/decision-coherence.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/hooks/verification-lints-observe.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/_mainthread-bash-class-observe.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/_mainthread-bash-class-replay.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/agent_ledger.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/agent_meter.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/attestation_registry.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/ceo_model_linter.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/claim_audit.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/clean_outbound.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/codex_agents_md.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/codex_worker.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/coherence_guardian.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/connector_guard_rules.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/cross_family_verify.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/data_repo_gate.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/decision_linter.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/derive_wired_scripts.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/detector_birth_check.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/dispatch_asymmetry.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/dispatch_lint.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/dispatch_lint_posthoc.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/dispatch_planner.py": "Source-tree build/planning tool; not yet in the plugin payload.",
+    ".claude/tools/duration_estimate.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/edit_snapshot.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/eval_runner.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/fact_retention_precommit.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/green_freshness.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/instrument_heartbeat.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/keystore_min.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/killgate_barcheck.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/measure_stores.py": "Machine-local utility; not in the portable plugin.",
+    ".claude/tools/nocturno_run_check.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/overnight-run.ps1": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/plan_progress.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/platform_fingerprint.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/pre_litter_inventory.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/provenance_linter.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/read_counts.py": "Machine-local utility; not in the portable plugin.",
+    ".claude/tools/rebill.py": "Machine-local utility; not in the portable plugin.",
+    ".claude/tools/relay_overlap_check.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/report_lint.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/rereview_harness.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/review_risk_tier.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/rotate_hook_logs.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/routing_guide.py": "Source-tree build/planning tool; not yet in the plugin payload.",
+    ".claude/tools/sci_source.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/secret_scan.PROPOSED.py": "Unshipped proposed implementation.",
+    ".claude/tools/secret_scan.v2.PROPOSED.py": "Unshipped proposed implementation.",
+    ".claude/tools/session_brief_gatherer.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/session_signals.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/source_radar.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/source_radar_backtest.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/source_radar_weekly_task.py": "Machine-local utility; not in the portable plugin.",
+    ".claude/tools/suite_runner.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/token_burn_report.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/unreported_work.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/usage-statusline.mjs": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/usage_meters.py": "Machine-local utility; not in the portable plugin.",
+    ".claude/tools/v1_coverage.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/verdict_pin_recheck.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/verdict_token_adapter.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/verification_independence.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/verifier_actions_ledger.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/verifier_creator_retro.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/verifier_preflight.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/weekly_owner_report.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/worklog_index.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/tools/youtube_transcript.py": "Source-tree instrument; not in the portable plugin payload.",
+    ".claude/workflows/evaluator-run.js": "Experiment-only workflow; not exported.",
+    "skills/analyzer.md": "Repository design reference; not exported as a runtime skill.",
+    "skills/coder.md": "Repository design reference; not exported as a runtime skill.",
+    "skills/evaluator.md": "Repository design reference; not exported as a runtime skill.",
+    "skills/innovator.md": "Repository design reference; not exported as a runtime skill.",
+    "skills/investigator.md": "Repository design reference; not exported as a runtime skill.",
+    "skills/planner.md": "Repository design reference; not exported as a runtime skill.",
+    "skills/verifier.md": "Repository design reference; not exported as a runtime skill."
+  }
+}

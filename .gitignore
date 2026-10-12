@@ -1,0 +1,8 @@
+# runtime artefacts of the installed plugin: never commit
+*.log
+logs/
+data/
+# directories the bundled test suites create when they run: never commit
+.claude/global-layer/bootstrap/mcp/fixtures/runs/
+.tmp-bootstrap-posix-tests/
+__pycache__/

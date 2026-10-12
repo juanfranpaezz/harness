@@ -1,0 +1,10 @@
+[
+  {
+    "name": "playwright",
+    "package": "@playwright/mcp",
+    "version": "0.0.82",
+    "versionReason": "Matches the local-install pin recorded in the handoff dated 2026-09-29, item at line 332. Publication age must still be checked against registry metadata at installation time.",
+    "entrypoint": "cli.js",
+    "claudeAdd": ["mcp", "add", "{name}", "--scope", "user", "--", "node", "{entrypoint}", "--isolated"]
+  }
+]

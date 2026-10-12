@@ -1,0 +1,8 @@
+{
+  "name": "harness",
+  "version": "0.1.0",
+  "description": "The harness: 13 review/build/verify agents and the guard and observe hooks, every hook routed through one runner with a double-fire guard.",
+  "author": {
+    "name": "harness-maintainer"
+  }
+}

@@ -1,0 +1,4 @@
+# Generated at test time by install-mcp-servers.test.mjs via build-registry.mjs; never committed.
+registry.json
+*.tgz
+runs/

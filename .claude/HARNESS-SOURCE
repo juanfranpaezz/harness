@@ -1,0 +1,1 @@
+{"role":"source","repo":"harness","version":"unpinned-until-first-apply","note":"Presence of this file is the primary test _global-runner.mjs and harness-seed.mjs use to SKIP this repo: the source never receives the global layer."}

@@ -1,0 +1,8 @@
+{
+  "personal-server": {
+    "hosts": ["192.0.2.10", "personal.example"]
+  },
+  "personal-path": {
+    "prefixes": ["C:\\personal-example"]
+  }
+}

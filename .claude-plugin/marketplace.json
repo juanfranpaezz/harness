@@ -1,0 +1,14 @@
+{
+  "name": "claude-harness",
+  "owner": {
+    "name": "harness-maintainer"
+  },
+  "description": "The harness as one Claude Code plugin: agents plus runner-routed guard and observe hooks.",
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./plugins/harness",
+      "description": "The harness agents and runner-routed hooks."
+    }
+  ]
+}

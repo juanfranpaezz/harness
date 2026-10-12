@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "files": {
+    "personal-terms.txt": {
+      "format": "UTF-8 text, one term per line",
+      "purpose": "Owner-curated terms used to detect personal information. No secrets."
+    },
+    "schema-manifest.json": {
+      "format": "JSON object",
+      "purpose": "Non-secret descriptions of the approved data files."
+    },
+    "preferences.json": {
+      "format": "JSON object",
+      "purpose": "Portable preferences only; no machine-specific state.",
+      "fields": {
+        "language": "Language tag as text",
+        "timezone": "Time zone name as text",
+        "response_style": "One of concise, balanced, detailed"
+      },
+      "additional_fields": false
+    }
+  }
+}

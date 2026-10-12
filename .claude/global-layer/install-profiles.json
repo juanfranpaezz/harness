@@ -1,0 +1,24 @@
+{
+  "capability_groups": {
+    "agents": { "prefixes": ["agents/"] },
+    "tools": { "prefixes": ["tools/"], "exclude": ["tools/harness-seed.mjs"] },
+    "standards": { "prefixes": ["standards/"], "paths": ["CLAUDE.md"] },
+    "observe-only-hooks": {
+      "hooks": ["_discipline-meter-observe.mjs", "injection-tripwire-observe.mjs", "_subagent-lifecycle-probe.mjs", "_config-change-audit.mjs"]
+    },
+    "brake-hooks": { "hooks": ["reversibility-guard.mjs"] },
+    "other-hooks": { "hooks": ["evidence-gate.mjs", "ref-lint-gate.mjs", "memory-coherence.mjs"] },
+    "lenses": { "prefixes": ["lenses/"] },
+    "project-seeding": { "paths": ["tools/harness-seed.mjs"] },
+    "machine-settings": { "paths": ["harness-deny-roots.txt"] }
+  },
+  "profiles": {
+    "core": { "groups": ["agents", "tools", "standards"] },
+    "developer": { "groups": ["agents", "tools", "standards", "observe-only-hooks"] },
+    "security": { "groups": ["agents", "tools", "standards", "brake-hooks"] },
+    "full": {
+      "legacy": true,
+      "groups": ["agents", "tools", "standards", "observe-only-hooks", "brake-hooks", "other-hooks", "lenses", "project-seeding", "machine-settings"]
+    }
+  }
+}
