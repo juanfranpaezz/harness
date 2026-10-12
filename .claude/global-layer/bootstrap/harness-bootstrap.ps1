@@ -108,7 +108,7 @@ function Invoke-BootstrapProcess {
             try { & "$env:SystemRoot\System32\taskkill.exe" /PID $process.Id /T /F 2>$null | Out-Null }
             catch { Write-Output 'BOOTSTRAP RESTRICTED: process-tree termination unavailable' | Out-Host }
             if (-not $process.HasExited) { Stop-Process -InputObject $process -Force -ErrorAction SilentlyContinue }
-            return @{exit_code=$null; text='Probe timed out'; ok=$false}
+            return @{exit_code=$null; text='Probe timed out'; ok=$false; timed_out=$true}
         }
         $code = $process.ExitCode
         if ($LiveOutput) { return @{exit_code=$code; text="$Command exited $code"; ok=($null -ne $code -and $code -eq 0)} }
@@ -136,7 +136,16 @@ function Test-Prerequisite {
     $arguments = '--version'
     if ($Id -eq 'python') { $arguments = '-c "import sys; print(sys.version.split()[0]); assert hasattr(sys, ''stdlib_module_names''); print(''PYTHON-OK'')"' }
     if ($extensions.ContainsKey($Id)) { $arguments = '--list-extensions --show-versions' }
-    $result = Invoke-BootstrapProcess $command $arguments
+    $resolved = Get-Command $command -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $resolved) { return @{present=$false; exit_code=$null; version=$null; reason='Command unavailable'} }
+    $result = Invoke-BootstrapProcess $resolved.Source $arguments -Timeout 30
+    if ($result.timed_out) {
+        $result = Invoke-BootstrapProcess $resolved.Source $arguments -Timeout 30
+        if ($result.timed_out -and -not $extensions.ContainsKey($Id)) {
+            Write-Output "WARNING $($Id): version probe timed out twice; executable resolved at $($resolved.Source); counted present" | Out-Host
+            return @{present=$true; exit_code=$null; version=$null; reason='Resolved executable; version probe timed out'}
+        }
+    }
     $version = $null
     $present = $result.ok -and $result.text -match '\d+\.\d+'
     if ($present) { $version = ($result.text -split "`r?`n")[0] }

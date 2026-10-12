@@ -26,6 +26,11 @@ the leak check runs with an empty term list (one NOTICE line) and STEP 5 install
 harness layer. A manual, previewed install (any OS) is in the
 [preview section](docs/harness/INSTALL.md#preview-then-install) of the guide.
 
+STEP 6 installs the Claude Code extension into VS Code's default profile when the `code`
+command is on PATH (and is skipped with a message when it is not), so the command needs no
+`-SkipVsCode`. Creating the two VS Code profiles is an optional manual step, described in the
+[one-command section](docs/harness/INSTALL.md#windows-one-command-install) of the guide.
+
 Follow the full guide to apply your selected profile. Cross-platform execution of
 the expanded publication matrix is **pending CI run**.
 

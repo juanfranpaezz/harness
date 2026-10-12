@@ -90,7 +90,7 @@ export function isProfileConfigDir(dotClaude, projectDir, env = process.env) {
 const SELF_DIR = path.dirname(fileURLToPath(import.meta.url));    // <G>/tools  (or the build dir)
 const G_ROOT = process.env.HARNESS_GLOBAL_ROOT || path.resolve(SELF_DIR, '..');
 const MANIFEST_PATH = path.join(G_ROOT, 'harness-MANIFEST.json');
-const LOG_PATH = path.join(G_ROOT, 'hooks', 'harness-seed.log');
+const LOG_PATH = process.env.HARNESS_SEED_LOG || path.join(G_ROOT, 'hooks', 'harness-seed.log');
 
 function logRow(row) {
   try {

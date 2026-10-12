@@ -52,6 +52,7 @@ function fixture(t, options = {}) {
       body += `if not "%~1"=="--version" exit /b 8\necho ${id} 2.50.0\nexit /b 0`;
     }
     if (id === 'node' && options.realNode) body = `"${process.execPath}" %*\nexit /b %errorlevel%`;
+    if (id === options.slow) body = 'powershell -NoProfile -Command "Start-Sleep -Seconds 5"\n' + body;
     if (id === options.hang) body = ':hang\ngoto hang';
     fs.writeFileSync(path.join(templates, `${id}.cmd`), cmd(body));
     fs.writeFileSync(path.join(bin, `${name}.cmd`), options.missing?.includes(id) ? cmd('exit /b 9009') : cmd(body));
@@ -119,7 +120,7 @@ function Wait-Process {
     param([Parameter(ValueFromPipeline=$true)]$InputObject, $Timeout)
     process {
         $script:waitCount++
-        if ($script:waitCount -eq 1) {
+        if ($script:waitCount -le 2) {
             # Model deadline expiry immediately; the real process must be killed.
             Set-Content -LiteralPath ${qps(path.join(dir, 'wait-timeout.txt'))} -Value $Timeout
         } else {
@@ -275,8 +276,9 @@ scenario('full-width Windows installer failure code is not truncated', t => {
 });
 scenario('probe timeout is bounded and later rows continue', t => {
   const f = fixture(t, { hang: 'git' }); const r = f.run();
-  check(r, 3, { git: 'declined', gh: 'present' }); assert.match(r.stdout, /Probe timed out/);
-  assert.equal(text(path.join(f.dir, 'wait-timeout.txt')).trim(), '20');
+  check(r, 0, { git: 'present', gh: 'present' }); assert.match(r.stdout, /WARNING git:.*timed out.*present/i);
+  assert.equal(text(f.log), '');
+  assert.equal(text(path.join(f.dir, 'wait-timeout.txt')).trim(), '30');
   assert.equal(r.summary.items[0].exit_code, null);
 });
 scenario('real local Node executes the exact admission probe', t => {
@@ -352,4 +354,17 @@ test('shipped TSV has nine ids and only sourced or pending routes', () => {
   const lines = text(manifest).trimEnd().split(/\r?\n/); assert.equal(lines[0], 'id\tprobe\tmin_version\troute\tscope\televation\tsource');
   const rows = lines.slice(1).map(l => l.split('\t')); assert.deepEqual(rows.map(r => r[0]), ids);
   for (const row of rows) { assert.equal(row.length, 7); assert.equal(row[6] === 'none', row[3] === 'ROUTE-PENDING'); }
+});
+
+scenario('slow resolved tool stays present; absent executable is missing', t => {
+  const slow = fixture(t, { slow: 'gh' });
+  const present = slow.run();
+  check(present, 0, { gh: 'present' });
+  assert.equal(text(slow.log), '');
+  const absent = fixture(t);
+  fs.renameSync(path.join(absent.dir, 'stub tools/gh.cmd'), path.join(absent.dir, 'withheld-gh.cmd'));
+  const missing = absent.run();
+  check(missing, 3, { gh: 'declined' });
+  assert.match(missing.stdout, /Command unavailable/);
+  console.log('SLOW exit=' + present.status + ': gh present; ABSENT exit=' + missing.status + ': gh declined, Command unavailable');
 });

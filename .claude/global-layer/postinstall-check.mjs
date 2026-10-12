@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -109,14 +110,16 @@ export function main(argv = process.argv.slice(2)) {
     const seedEntry = entries.find(entry => Array.isArray(entry.args)
       && entry.args.some(arg => typeof arg === 'string' && path.resolve(config, arg) === seedFile));
     if (!seedEntry) throw new Error(`SessionStart seed command is not wired${missing.length ? `; unwired events: ${missing.join(',')}` : ''}`);
-    const log = path.join(config, 'hooks', 'harness-seed.log');
+    // Keep the synthetic check's diagnostics outside the installed configuration.
+    const log = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'harness-postinstall-')), 'harness-seed.log');
     const before = fs.existsSync(log) ? fs.statSync(log).size : 0;
     const input = JSON.stringify({ session_id: 'postinstall-check', hook_event_name: 'SessionStart', cwd: config });
     const start = performance.now();
     let r;
     try {
       // Execute the command actually wired by wireGlobal, including all its arguments, without a shell.
-      r = run(seedEntry.command, seedEntry.args, input);
+      r = spawnSync(seedEntry.command, seedEntry.args, { cwd: config,
+        env: { ...env, HARNESS_SEED_LOG: log }, input, encoding: 'utf8', timeout: 30000, maxBuffer: 4 << 20, windowsHide: true });
     } finally { elapsed = performance.now() - start; }
     if (r.status !== 0 || r.error) throw new Error(`SessionStart ${status(r)}`);
     if (!fs.existsSync(log) || fs.statSync(log).size <= before) throw new Error('SessionStart did not append its log marker');

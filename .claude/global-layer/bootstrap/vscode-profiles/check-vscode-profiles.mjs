@@ -1,42 +1,67 @@
-import { readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-import { profiles, options } from './setup-vscode-profiles.mjs';
+// Read-only check of what setup-vscode-profiles.mjs is responsible for.
+//   default mode: PASS when the Claude Code extension folder is in the default extensions dir; each harness profile
+//                 is reported as present / missing / profile not created yet, for information only.
+//   profiles mode: PASS only when each harness profile exists, lists the extension and carries its colours.
+// VS Code names an installed extension folder <id>-<version>[-<platform>] (the extension id, a dash, a version such as 2.1.296, a dash, the platform),
+// so the folder is matched by that pattern, never by the bare id.
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, basename, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { profiles, options, existingProfiles, profileDir, EXTENSION } from './setup-vscode-profiles.mjs';
 
-function readJSON(path) { return JSON.parse(readFileSync(path, 'utf8')); }
+export const FOLDER = new RegExp('^' + EXTENSION.replace(/[.]/g, '\\.') + '-\\d', 'i');
 
-function check(dir) {
-  let manifest;
-  let manifestError;
-  try { manifest = readJSON(join(dir, 'harness-profiles', 'manifest.json')); }
-  catch { manifestError = 'manifest missing or invalid'; }
-  let passed = true;
-  for (const profile of profiles) {
-    const reasons = [];
-    const entry = manifest?.[profile.name];
-    if (manifestError) reasons.push(manifestError);
-    else if (!entry) reasons.push('manifest entry missing');
-    else if (entry.extension !== profile.extension ||
-      Object.entries(profile.colours).some(([key, value]) => entry.colours?.[key] !== value)) {
-      reasons.push('manifest entry mismatch');
-    }
-    try {
-      const colours = readJSON(join(dir, 'harness-profiles', profile.name, 'settings.json'))['workbench.colorCustomizations'];
-      if (Object.entries(profile.colours).some(([key, value]) => colours?.[key] !== value)) {
-        reasons.push('settings colours missing or incorrect');
-      }
-    } catch { reasons.push('settings missing or invalid'); }
-    try {
-      if (!statSync(join(dir, `extensions-${profile.name}`, profile.extension)).isDirectory()) {
-        reasons.push('extension folder missing');
-      }
-    } catch { reasons.push('extension folder missing'); }
-    const ok = reasons.length === 0;
-    passed &&= ok;
-    console.log(`profile ${profile.name}: ${ok ? 'PASS manifest, settings and extension present' : `FAIL ${reasons.join('; ')}`}`);
+function isDir(path) { try { return statSync(path).isDirectory(); } catch { return false; } }
+
+export function defaultFolder(extensionsDir) {
+  try { return readdirSync(extensionsDir).find(name => FOLDER.test(name) && isDir(join(extensionsDir, name))); }
+  catch { return undefined; }
+}
+
+function profileFolder(dir, location, extensionsDir) {
+  let entries;
+  try { entries = JSON.parse(readFileSync(join(profileDir(dir, location), 'extensions.json'), 'utf8')); }
+  catch { return undefined; }
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (String(entry?.identifier?.id || '').toLowerCase() !== EXTENSION) continue;
+    const folder = entry.relativeLocation ? join(extensionsDir, entry.relativeLocation) : entry.location?.fsPath;
+    if (folder && FOLDER.test(basename(folder)) && isDir(folder)) return basename(folder);
   }
-  console.log(`VSCODE-PROFILES ${passed ? 'PASS' : 'FAIL'}`);
+  return undefined;
+}
+
+function coloursApplied(dir, location, colours) {
+  try {
+    const current = JSON.parse(readFileSync(join(profileDir(dir, location), 'settings.json'), 'utf8'))['workbench.colorCustomizations'];
+    return Object.entries(colours).every(([key, value]) => current?.[key] === value);
+  } catch { return false; }
+}
+
+export function check({ dir, mode, extensionsDir }) {
+  let passed = true;
+  const folder = defaultFolder(extensionsDir);
+  console.log(`default profile: extension ${folder ? `present (${folder})` : `missing (no ${EXTENSION}-<version> folder in ${extensionsDir})`}`);
+  if (mode === 'default') passed = Boolean(folder);
+  const existing = existingProfiles(dir);
+  for (const profile of profiles) {
+    const location = existing.get(profile.name);
+    let state = 'profile not created yet';
+    if (location) {
+      const found = profileFolder(dir, location, extensionsDir);
+      state = found ? `extension present (${found})` : 'extension missing';
+      if (mode === 'profiles') {
+        const colours = coloursApplied(dir, location, profile.colours);
+        state += colours ? '; colours applied' : '; colours missing';
+        if (!found || !colours) passed = false;
+      }
+    } else if (mode === 'profiles') passed = false;
+    console.log(`profile ${profile.name}: ${state}`);
+  }
+  console.log(`VSCODE-PROFILES ${passed ? 'PASS' : 'FAIL'} (mode ${mode})`);
   return passed ? 0 : 1;
 }
 
-try { process.exitCode = check(options(process.argv.slice(2)).dir); }
-catch (error) { console.error(error.message); console.log('VSCODE-PROFILES FAIL'); process.exitCode = 1; }
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try { process.exitCode = check(options(process.argv.slice(2))); }
+  catch (error) { console.error(error.message); console.log('VSCODE-PROFILES FAIL'); process.exitCode = 1; }
+}

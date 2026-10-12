@@ -1375,8 +1375,9 @@ export function run(argv) {
     // manifest
     const prevPath = path.join(G, 'harness-MANIFEST.json');
     let n = 1;
+    let prev;
     try {
-      const prev = JSON.parse(fs.readFileSync(prevPath, 'utf8'));
+      prev = JSON.parse(fs.readFileSync(prevPath, 'utf8'));
       const pfx = `${MANIFEST_SCHEMA}-${stamp()}.`;
       const v = String(prev.version || '');
       if (v.startsWith(pfx)) { const k = Number(v.slice(pfx.length)); if (Number.isFinite(k)) n = k + 1; }
@@ -1388,14 +1389,17 @@ export function run(argv) {
       wire_project: wireProject(selection),
     };
     fs.mkdirSync(G, { recursive: true });
-    if (fs.existsSync(prevPath)) { fs.copyFileSync(prevPath, backupPath(prevPath)); out.n_backups++; }
-    fs.writeFileSync(prevPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+    // Version and generation time describe content changes, not invocations.
+    if (prev && ['schema', 'source', 'files', 'seed', 'wire_project'].every(key => JSON.stringify(prev[key]) === JSON.stringify(manifest[key]))) {
+      manifest.version = prev.version;
+      manifest.generated_at = prev.generated_at;
+    }
+    if (writeStateIfChanged(prevPath, manifest)) out.n_backups++;
     // I2 ledger (backed up like the manifest, but not counted in n_backups: it is install state, not a payload file)
     const lp = path.join(G, LEDGER_FILE);
-    if (fs.existsSync(lp)) fs.copyFileSync(lp, backupPath(lp));
     const request = { source: S, global: G, scrub: !!a.scrub, personal_terms: a.personalTermsList, no_personal_terms: !!a.noPersonalTerms };
     if (a.profile) { request.profile = a.profile; request.with_hooks = !!a.withHooks; }
-    fs.writeFileSync(lp, JSON.stringify({ schema: LEDGER_SCHEMA, version: manifest.version, generated_at: manifest.generated_at, request, files: ledgerFiles }, null, 2) + '\n', 'utf8');
+    writeStateIfChanged(lp, { schema: LEDGER_SCHEMA, version: manifest.version, generated_at: manifest.generated_at, request, files: ledgerFiles });
     out.ledger = { path: LEDGER_FILE, n_files: ledgerFiles.length };
     out.version = manifest.version;
     out.wired = wire(G, selection);
@@ -1454,7 +1458,18 @@ export function settingsUnparseable(sp) {
   return j && typeof j === 'object' && !Array.isArray(j) ? null : 'not a JSON object';
 }
 
-/** Merge the 12 global hook entries into <G>/settings.json. Backs the file up first, preserves every
+/** Write a JSON state file only when its bytes differ, backing up the previous version only then.
+ *  Returns true when an existing file was replaced. */
+function writeStateIfChanged(file, value) {
+  const bytes = JSON.stringify(value, null, 2) + '\n';
+  const exists = fs.existsSync(file);
+  if (exists && fs.readFileSync(file, 'utf8') === bytes) return false;
+  if (exists) fs.copyFileSync(file, backupPath(file));
+  fs.writeFileSync(file, bytes, 'utf8');
+  return exists;
+}
+
+/** Merge the 12 global hook entries into <G>/settings.json. Backs the file up first (only when its bytes change), preserves every
  *  existing key, appends the README note. Returns the number of entries added. */
 export function wire(G, selection = null) {
   const want = wireGlobal(G, selection);
@@ -1465,7 +1480,6 @@ export function wire(G, selection = null) {
     const bad = settingsUnparseable(sp);
     if (bad) throw new Error(`REFUSED: ${sp} is ${bad}; it is never rebuilt from {} (fix or restore it, then re-run)`);
     settings = JSON.parse(fs.readFileSync(sp, 'utf8'));
-    fs.copyFileSync(sp, backupPath(sp));
   }
   if (!settings.hooks || typeof settings.hooks !== 'object') settings.hooks = {};
   let added = 0;
@@ -1490,7 +1504,7 @@ export function wire(G, selection = null) {
     settings._comment_README = (prevNote ? prevNote.trim() + ' ' : '') + README_NOTE;
   }
   fs.mkdirSync(G, { recursive: true });
-  fs.writeFileSync(sp, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  writeStateIfChanged(sp, settings);
   return added;
 }
 

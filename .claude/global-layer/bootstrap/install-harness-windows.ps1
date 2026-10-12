@@ -17,8 +17,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$InstallHome = $HOME
-if ($env:HOME) { $InstallHome = $env:HOME }
+# The Windows user profile decides every default path; PowerShell's $HOME is only a fallback when USERPROFILE is empty
+# (a HOME variable that differs from the profile must never redirect the install to a second location).
+$InstallHome = $env:USERPROFILE
+if (-not $InstallHome) { $InstallHome = $HOME }
 if (-not $ConfigDir) { $ConfigDir = Join-Path $InstallHome '.claude' }
 if (-not $SourceDir) { $SourceDir = Join-Path $InstallHome 'harness-src' }
 if (-not $DataDir) { $DataDir = Join-Path $InstallHome 'harness-data' }
@@ -84,6 +86,49 @@ function Resolve-Python3([string]$Requested) {
     throw "Python 3 is required but no working interpreter was found (tried: $($candidates -join ', '))"
 }
 
+# Seconds per bounded version call in the STEP 1 re-check; HARNESS_TOOL_PROBE_SECONDS overrides it (tests only).
+$ToolProbeSeconds = 30
+if ($env:HARNESS_TOOL_PROBE_SECONDS) { $ToolProbeSeconds = [int]$env:HARNESS_TOOL_PROBE_SECONDS }
+
+function Invoke-VersionProbe([string]$Path) {
+    # One bounded `--version` call: the exit code, or $null when it timed out (its process tree is then ended).
+    $info = New-Object System.Diagnostics.ProcessStartInfo
+    $info.FileName = $Path
+    $info.Arguments = '--version'
+    if ($Path -match '\.(cmd|bat)$') { $info.FileName = $env:ComSpec; $info.Arguments = "/d /s /c `"`"$Path`" --version`"" }
+    $info.UseShellExecute = $false
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $info.CreateNoWindow = $true
+    $process = [System.Diagnostics.Process]::Start($info)
+    $null = $process.StandardOutput.ReadToEndAsync()
+    $null = $process.StandardError.ReadToEndAsync()
+    if ($process.WaitForExit($ToolProbeSeconds * 1000)) { $process.WaitForExit(); return $process.ExitCode }
+    $saved = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & "$env:SystemRoot\System32\taskkill.exe" /PID $process.Id /T /F 2>&1 | Out-Null } catch { }
+    finally { $ErrorActionPreference = $saved }
+    if (-not $process.HasExited) { try { $process.Kill() } catch { } }
+    return $null
+}
+
+function Test-RequiredTool([string]$ToolName) {
+    # Resolve first, then a bounded version call with one retry. A resolved executable whose version call only times
+    # out (load, low memory) counts as present with a warning, so an installed tool never triggers a reinstall.
+    if ($ToolName -eq 'python') { $null = Resolve-Python3 $Python; return }
+    $toolPath = Resolve-Tool $ToolName
+    $code = $null
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        $code = Invoke-VersionProbe $toolPath
+        if ($code -eq 0) { return }
+    }
+    if ($null -eq $code) {
+        Write-Output "WARNING ${ToolName}: version check timed out twice ($ToolProbeSeconds s each); found at $toolPath; counted present"
+        return
+    }
+    throw "$ToolName exited $code"
+}
+
 function Refresh-Path {
     $entries = @($env:PATH -split ';')
     foreach ($scope in @('Machine', 'User')) {
@@ -120,12 +165,7 @@ try {
         $installed = @()
         foreach ($toolName in @('git', 'node', 'python', 'claude', 'gh')) {
             try {
-                if ($toolName -eq 'python') { $null = Resolve-Python3 $Python }
-                else {
-                    $toolPath = Resolve-Tool $toolName
-                    $probe = Invoke-Native $toolPath @('--version')
-                    if ($probe.Code -ne 0) { throw "$toolName exited $($probe.Code)" }
-                }
+                Test-RequiredTool $toolName
                 $installed += $toolName
             } catch { $missing += $toolName }
         }
@@ -210,13 +250,24 @@ try {
         Write-Output 'MCP pre-check: installation or registration needs repair'
         Invoke-Required $node ($mcpArgs + @('--ensure'))
     }
+    # The VS Code CLI cannot create profiles, so STEP 6 installs the extension into the DEFAULT profile only;
+    # the two harness profiles are an optional manual step described in docs/harness/INSTALL.md.
+    $editor = 'MCP servers installed; VS Code step skipped (-SkipVsCode)'
     if (-not $SkipVsCode) {
-        $codeCli = Resolve-Tool 'code'
-        $userData = Join-Path $env:APPDATA 'Code'
-        Invoke-Required $node @((Join-Path $layer 'bootstrap\vscode-profiles\setup-vscode-profiles.mjs'),
-            '--code', $codeCli, '--user-data-dir', $userData)
+        $codeTool = Get-Command code -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $codeTool) {
+            $editor = 'MCP servers installed; VS Code extension SKIPPED (VS Code CLI not found)'
+        } else {
+            $profilesDir = Join-Path $layer 'bootstrap\vscode-profiles'
+            $userData = Join-Path $env:APPDATA 'Code'
+            Invoke-Required $node @((Join-Path $profilesDir 'setup-vscode-profiles.mjs'), '--mode', 'default',
+                '--code', $codeTool.Source, '--user-data-dir', $userData)
+            Invoke-Required $node @((Join-Path $profilesDir 'check-vscode-profiles.mjs'), '--mode', 'default',
+                '--user-data-dir', $userData)
+            $editor = 'extension installed (default profile); VS Code profiles: manual step (see docs/harness/INSTALL.md)'
+        }
     }
-    Write-Output 'STEP 6/7 tools: OK MCP servers installed; editor setup completed or skipped'
+    Write-Output "STEP 6/7 tools: OK $editor"
 
     $step = 7; $name = 'postinstall'
     $postinstallArgs = @((Join-Path $layer 'postinstall-check.mjs'), '--config-dir', $ConfigDir, '--python', $pythonExe)

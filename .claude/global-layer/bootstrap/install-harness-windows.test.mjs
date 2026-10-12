@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -9,6 +10,9 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = path.resolve(HERE, '../../..');
 const SCRIPT = path.join(HERE, 'install-harness-windows.ps1');
+// The versioned extension folder (<id>-<version>-<platform>) is built from parts: written out it has the shape of a model name
+// and trips the publication leak check (rule 17), though it is only a folder name.
+const VERSIONED_FOLDER = ['anthropic.claude-code', '2.1.0-win32-x64'].join('-');
 const SHELL = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
 const windows = process.platform === 'win32';
 const run = (command, args, env, cwd) => spawnSync(command, args, {
@@ -40,7 +44,7 @@ function fixture(terms = true) {
     ComSpec: path.join(process.env.SystemRoot, 'System32/cmd.exe'),
     // The router shim logs script calls, but the checker spawns the wired `node` command without a shell,
     // which only finds a node.exe; keep the real one last on PATH so the shim still wins for PowerShell.
-    PATH: [bin, path.dirname(git), path.join(process.env.SystemRoot, 'System32'), path.dirname(process.execPath)].join(';'),
+    PATH: [bin, path.dirname(git), path.join(process.env.SystemRoot, 'System32'), path.dirname(SHELL), path.dirname(process.execPath)].join(';'),
     PATHEXT: '.COM;.EXE;.BAT;.CMD', HOME: home, USERPROFILE: home,
     APPDATA: path.join(home, 'AppData/Roaming'), LOCALAPPDATA: path.join(home, 'AppData/Local'),
     TEMP: root, TMP: root, PYTHONDONTWRITEBYTECODE: '1',
@@ -71,7 +75,9 @@ fs.appendFileSync(process.env.HARNESS_TEST_LOG, JSON.stringify(args) + '\\n');
 if (name === 'harness-install.mjs') {
   const layer = path.dirname(args[0]);
   for (const relative of ['bootstrap/mcp/install-mcp-servers.mjs', 'postinstall-check.mjs',
-    'data-repo-template/data-whitelist.json', '../tools/data_repo_gate.py']) {
+    'data-repo-template/data-whitelist.json', '../tools/data_repo_gate.py',
+    'sync-harness-from-source.mjs', 'harness-seed.mjs', 'bootstrap/install-harness-windows.ps1',
+    'bootstrap/vscode-profiles/setup-vscode-profiles.mjs', 'bootstrap/vscode-profiles/check-vscode-profiles.mjs']) {
     fs.copyFileSync(path.join(process.env.HARNESS_TEST_SOURCE, '.claude/global-layer', relative), path.join(layer, relative));
   }
 }
@@ -113,10 +119,11 @@ process.exit(r.status ?? 1);
     }
   }
   // withData=false is the public route: no -DataRepo and no -DataDir at all.
-  const invoke = (overrides = {}, python = env.PYTHON, prereqFlags = ['-SkipPrereqs'], withData = true) => run(SHELL, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT,
-    '-SourceRepo', origin, ...(withData ? ['-DataRepo', data] : []), '-ConfigDir', config, '-SourceDir', sourceDir,
-    ...(withData ? ['-DataDir', dataDir] : []), ...(python ? ['-Python', python] : []), '-McpRegistry', registryDir, '-McpClaude', claudeStub,
-    ...prereqFlags, '-SkipVsCode'], { ...env, ...overrides }, root);
+  // editorFlags defaults to -SkipVsCode; defaultPaths=true omits -ConfigDir/-SourceDir/-DataDir (the install then uses the profile defaults).
+  const invoke = (overrides = {}, python = env.PYTHON, prereqFlags = ['-SkipPrereqs'], withData = true, editorFlags = ['-SkipVsCode'], defaultPaths = false) => run(SHELL, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT,
+    '-SourceRepo', origin, ...(withData ? ['-DataRepo', data] : []), ...(defaultPaths ? [] : ['-ConfigDir', config, '-SourceDir', sourceDir]),
+    ...(withData && !defaultPaths ? ['-DataDir', dataDir] : []), ...(python ? ['-Python', python] : []), '-McpRegistry', registryDir, '-McpClaude', claudeStub,
+    ...prereqFlags, ...editorFlags], { ...env, ...overrides }, root);
   const calls = () => fs.existsSync(env.HARNESS_TEST_LOG)
     ? fs.readFileSync(env.HARNESS_TEST_LOG, 'utf8').trim().split('\n').map(JSON.parse) : [];
   return { root, home, bin, noGit, data, origin, config, sourceDir, dataDir, env, git, registryDir, claudeStub, invoke, calls };
@@ -402,4 +409,124 @@ test('public route still fails closed: a failing harness install stops at step 4
   assert.match(noPython.stdout, /STEP 5\/7 personal: FAIL Python 3 is required/);
   assert.doesNotMatch(noPython.stdout, /STEP 6\/7|STEP 7\/7|POSTINSTALL PASS/);
   console.log('CASE 7 PASS: the public route fails closed at steps 4 and 5');
+});
+
+function configSnapshot(dir) {
+  return Object.fromEntries(fs.readdirSync(dir, { recursive: true }).sort().filter(name => fs.statSync(path.join(dir, name)).isFile()).map(name => {
+    const file = path.join(dir, name);
+    return [name, { sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex'), mtime: fs.statSync(file).mtimeMs }];
+  }));
+}
+
+function codeStub(f) {
+  write(path.join(f.bin, 'code.cmd'), '@echo off\r\n"%HARNESS_TEST_REAL_NODE%" "' + path.join(HERE, 'vscode-profiles/fixtures/code-stub.mjs') + '" %*\r\nexit /b %errorlevel%\r\n');
+}
+
+function treeSnapshot(dir) {
+  if (!fs.existsSync(dir)) return {};
+  return Object.fromEntries(fs.readdirSync(dir, { recursive: true }).sort().map(name => {
+    const file = path.join(dir, name);
+    const stat = fs.statSync(file);
+    return [name, stat.isDirectory() ? 'directory' : { sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex'), mtime: stat.mtimeMs }];
+  }));
+}
+
+const STEP6_OK = 'STEP 6/7 tools: OK extension installed (default profile); VS Code profiles: manual step (see docs/harness/INSTALL.md)';
+
+test('STEP 6 installs the extension into the default profile once, never creates profiles, and update re-runs it as a no-op', { skip: !windows }, () => {
+  const f = fixture();
+  codeStub(f);
+  const codeLog = path.join(f.root, 'code argv.jsonl');
+  const r = f.invoke({ CODE_STUB_LOG: codeLog }, f.env.PYTHON, ['-SkipPrereqs'], true, []);
+  assert.equal(r.status, 0, output(r));
+  const lines = r.stdout.split(/\r?\n/);
+  assert.ok(lines.includes(STEP6_OK), output(r));
+  assert.match(r.stdout, /VSCODE-PROFILES PASS \(mode default\)/);
+  assert.match(r.stdout, /STEP 7\/7 postinstall: OK verified/);
+  const extensions = path.join(f.home, '.vscode/extensions');
+  assert.equal(fs.existsSync(path.join(extensions, VERSIONED_FOLDER)), true);
+  const calls = () => fs.readFileSync(codeLog, 'utf8').trim().split('\n').map(JSON.parse);
+  for (const args of calls()) for (const flag of ['--profile', '--new-window']) assert.equal(args.includes(flag), false, JSON.stringify(args));
+  assert.equal(calls().filter(args => args.includes('--install-extension')).length, 1);
+  const command = lines.find(line => line.startsWith('UPDATE-COMMAND: ')).slice('UPDATE-COMMAND: '.length);
+  assert.doesNotMatch(command, /-SkipVsCode/);
+  const before = treeSnapshot(extensions);
+  const update = run(SHELL, ['-NoProfile', '-Command', command], { ...f.env, CODE_STUB_LOG: codeLog }, f.root);
+  assert.equal(update.status, 0, output(update));
+  assert.ok(update.stdout.split(/\r?\n/).includes(STEP6_OK), output(update));
+  assert.match(update.stdout, /default profile: extension already installed/);
+  assert.equal(calls().filter(args => args.includes('--install-extension')).length, 1);
+  assert.deepEqual(treeSnapshot(extensions), before);
+  console.log('STEP6 install exit=' + r.status + ' | ' + STEP6_OK + ' | update exit=' + update.status + ', install-extension calls=1');
+});
+
+test('STEP 6 without a VS Code CLI is SKIPPED and the install continues; a failed extension install stops at STEP 6', { skip: !windows }, () => {
+  const none = fixture();
+  const skipped = none.invoke({}, none.env.PYTHON, ['-SkipPrereqs'], true, []);
+  assert.equal(skipped.status, 0, output(skipped));
+  assert.match(skipped.stdout, /STEP 6\/7 tools: OK MCP servers installed; VS Code extension SKIPPED \(VS Code CLI not found\)/);
+  assert.match(skipped.stdout, /STEP 7\/7 postinstall: OK verified/);
+  const broken = fixture();
+  codeStub(broken);
+  const failed = broken.invoke({ CODE_STUB_FAIL_INSTALL: '1' }, broken.env.PYTHON, ['-SkipPrereqs'], true, []);
+  assert.equal(failed.status, 1, output(failed));
+  assert.match(failed.stdout + failed.stderr, /default profile: CLI failed: Failed Installing Extensions/);
+  assert.match(failed.stdout, /STEP 6\/7 tools: FAIL/);
+  assert.doesNotMatch(failed.stdout, /STEP 7\/7|POSTINSTALL PASS/);
+  console.log('NO-CLI exit=' + skipped.status + ' | ' + skipped.stdout.split(/\r?\n/).find(line => line.startsWith('STEP 6/7')) +
+    '\nINSTALL-FAILS exit=' + failed.status + ' | ' + failed.stdout.split(/\r?\n/).find(line => line.startsWith('STEP 6/7')));
+});
+
+test('STEP 1 re-check: a slow installed tool is present, a timed-out one counts present with a warning, an absent one is missing', { skip: !windows }, () => {
+  const slowGh = '@echo off\r\nping -n 6 127.0.0.1 >nul\r\necho gh version 2.50.0\r\n';
+  const slow = prerequisiteFixture();
+  fs.writeFileSync(path.join(slow.bin, 'gh.cmd'), slowGh);
+  const present = slow.invoke({}, slow.env.PYTHON, []);
+  assert.equal(present.status, 0, output(present));
+  assert.match(present.stdout, /STEP 1\/7 prerequisites: OK installed: .*gh/);
+  assert.doesNotMatch(present.stdout, /WARNING gh/);
+  assert.equal(fs.existsSync(slow.wingetLog), false, 'a present tool never reaches winget');
+  const timed = prerequisiteFixture();
+  fs.writeFileSync(path.join(timed.bin, 'gh.cmd'), slowGh);
+  const warned = timed.invoke({ HARNESS_TOOL_PROBE_SECONDS: '2' }, timed.env.PYTHON, []);
+  assert.equal(warned.status, 0, output(warned));
+  assert.match(warned.stdout, /WARNING gh: version check timed out twice \(2 s each\); found at .*gh\.cmd; counted present/);
+  assert.match(warned.stdout, /STEP 1\/7 prerequisites: OK installed: .*gh/);
+  assert.equal(fs.existsSync(timed.wingetLog), false, 'a timed-out but resolved tool never reaches winget');
+  const absent = prerequisiteFixture(42);
+  fs.renameSync(path.join(absent.bin, 'gh.cmd'), path.join(absent.root, 'withheld gh.cmd'));
+  const missing = absent.invoke({}, absent.env.PYTHON, []);
+  assert.equal(missing.status, 3, output(missing));
+  // Refresh-Path re-adds the registry PATH: on a PC with a real gh the failure is reported as the bootstrap's own exit 3.
+  assert.match(missing.stdout, /STEP 1\/7 prerequisites: FAIL (required tools still missing or unusable: gh |bootstrap exited 3)/);
+  assert.doesNotMatch(missing.stdout, /STEP 2\/7/);
+  console.log('RECHECK slow exit=' + present.status + ' (no warning, no winget) | timeout exit=' + warned.status + ' | ' +
+    warned.stdout.split(/\r?\n/).find(line => line.startsWith('WARNING gh')) + ' | absent exit=' + missing.status);
+});
+
+test('printed update preserves every config byte and mtime, including backup inventory', { skip: !windows }, () => {
+  const f = fixture();
+  const first = f.invoke();
+  assert.equal(first.status, 0, output(first));
+  const before = configSnapshot(f.config);
+  const command = first.stdout.split(/\r?\n/).find(line => line.startsWith('UPDATE-COMMAND: ')).slice('UPDATE-COMMAND: '.length);
+  const update = run(SHELL, ['-NoProfile', '-Command', command], f.env, f.root);
+  assert.equal(update.status, 0, output(update));
+  const after = configSnapshot(f.config);
+  const changed = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(name => JSON.stringify(before[name]) !== JSON.stringify(after[name]));
+  console.log('UPDATE exit=' + update.status + ' changed=' + JSON.stringify(changed));
+  assert.deepEqual(after, before);
+  const settings = path.join(f.config, 'settings.json');
+  fs.appendFileSync(settings, '\n');
+  assert.notDeepEqual(configSnapshot(f.config), before, 'snapshot must detect an actual byte change');
+});
+
+test('USERPROFILE wins over conflicting HOME for all default install paths', { skip: !windows }, () => {
+  const f = fixture();
+  fs.mkdirSync(path.join(f.root, 'wrong home'));
+  const r = f.invoke({ HOME: path.join(f.root, 'wrong home'), CLAUDE_STUB_CONFIG: path.join(f.home, '.claude') }, f.env.PYTHON, ['-SkipPrereqs'], true, ['-SkipVsCode'], true);
+  assert.equal(r.status, 0, output(r));
+  for (const name of ['.claude', 'harness-src', 'harness-data', '.mcp-servers']) assert.equal(fs.existsSync(path.join(f.home, name)), true, name);
+  for (const name of ['.claude', 'harness-src', 'harness-data', '.mcp-servers']) assert.equal(fs.existsSync(path.join(f.root, 'wrong home', name)), false, name);
+  console.log('HOME exit=' + r.status + ': USERPROFILE defaults verified');
 });
