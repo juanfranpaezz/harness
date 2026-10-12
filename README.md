@@ -1,5 +1,7 @@
 # harness
 
+New to Claude Code? Start with [GETTING-STARTED.md](GETTING-STARTED.md).
+
 A set of Claude Code agents, tools and rules built around one idea: **the agent that builds something never signs it off.** An independent verifier, started with a fresh context, re-derives the result from the artifact itself and returns a verdict. The verifier agent and the verification doctrine are the part worth trying first; the rest of the package (planner, coder, analyzer, investigator, guard hooks and helper tools) is built to feed it.
 
 ## The verification doctrine in 10 lines
